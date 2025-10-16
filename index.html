@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>🎯 Proficiency Bell Curve</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.26.0/plotly.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', 'Courier New', monospace;
+      transition: all 0.4s ease;
+      color: #1a1a1a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      min-height: 100vh;
+    }
+
+    body.light-mode {
+      background: linear-gradient(135deg, #f8f9fb 0%, #eef2f7 100%);
+    }
+
+    body.dark-mode {
+      background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+      color: #e0e0e0;
+    }
+
+    .content {
+      width: 100%;
+      max-width: 1100px;
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 100;
+    }
+
+    .toggle-btn {
+      width: 60px;
+      height: 32px;
+      border-radius: 20px;
+      border: none;
+      cursor: pointer;
+      background: #ddd;
+      transition: all 0.3s ease;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .dark-mode .toggle-btn {
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      box-shadow: 0 0 15px rgba(74, 144, 226, 0.2);
+    }
+
+    .toggle-btn:hover {
+      transform: scale(1.05);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 45px;
+      margin-top: 20px;
+    }
+
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+      font-weight: 600;
+      background: linear-gradient(135deg, #4a90e2, #357abd);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: subtle-glow 3s ease-in-out infinite;
+    }
+
+    .dark-mode h1 {
+      background: linear-gradient(135deg, #00d4ff, #00a8cc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    @keyframes subtle-glow {
+      0%, 100% { filter: drop-shadow(0 0 4px rgba(74, 144, 226, 0.3)); }
+      50% { filter: drop-shadow(0 0 8px rgba(74, 144, 226, 0.5)); }
+    }
+
+    h3 {
+      font-size: 0.95em;
+      font-weight: 400;
+      letter-spacing: 0.5px;
+      opacity: 0.7;
+      color: #666;
+    }
+
+    .dark-mode h3 {
+      color: #a0a0a0;
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 25px;
+      margin-bottom: 40px;
+      padding: 28px;
+      border-radius: 10px;
+      border: 1px solid rgba(74, 144, 226, 0.2);
+      background: rgba(74, 144, 226, 0.04);
+      backdrop-filter: blur(8px);
+      transition: all 0.3s ease;
+    }
+
+    .dark-mode .controls-grid {
+      border: 1px solid rgba(0, 212, 255, 0.15);
+      background: rgba(0, 212, 255, 0.05);
+      box-shadow: 0 0 15px rgba(0, 212, 255, 0.1);
+    }
+
+    .slider-container {
+      position: relative;
+    }
+
+    label {
+      font-weight: 600;
+      display: block;
+      margin-bottom: 10px;
+      font-size: 0.95em;
+      color: #357abd;
+      letter-spacing: 0.3px;
+    }
+
+    .dark-mode label {
+      color: #00d4ff;
+    }
+
+    .value-display {
+      display: inline-block;
+      color: #e84c3d;
+      font-weight: 700;
+      background: rgba(232, 76, 61, 0.08);
+      padding: 3px 10px;
+      border-radius: 4px;
+      margin-left: 8px;
+      border: 1px solid rgba(232, 76, 61, 0.2);
+      font-size: 0.9em;
+    }
+
+    .dark-mode .value-display {
+      background: rgba(255, 64, 129, 0.1);
+      color: #ff4081;
+      border: 1px solid rgba(255, 64, 129, 0.3);
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: linear-gradient(90deg, #4a90e2, #357abd);
+      outline: none;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+
+    .dark-mode input[type="range"] {
+      background: linear-gradient(90deg, #00d4ff, #0088cc);
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      background: linear-gradient(135deg, #4a90e2, #357abd);
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid #fff;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
+    }
+
+    .dark-mode input[type="range"]::-webkit-slider-thumb {
+      background: linear-gradient(135deg, #00d4ff, #0088cc);
+      box-shadow: 0 0 12px rgba(0, 212, 255, 0.4);
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 4px 12px rgba(74, 144, 226, 0.5);
+    }
+
+    .dark-mode input[type="range"]::-webkit-slider-thumb:hover {
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.6);
+    }
+
+    #bell-curve {
+      width: 100%;
+      max-width: 1000px;
+      height: 550px;
+      margin: 30px auto;
+      border-radius: 10px;
+      border: 1px solid rgba(74, 144, 226, 0.2);
+      box-shadow: 0 8px 24px rgba(74, 144, 226, 0.1);
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+    }
+
+    .dark-mode #bell-curve {
+      background: rgba(13, 17, 23, 0.6);
+      border: 1px solid rgba(0, 212, 255, 0.15);
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.12);
+    }
+
+    #probability {
+      font-size: 1em;
+      margin-top: 30px;
+      font-weight: 600;
+      text-align: center;
+      padding: 20px;
+      background: rgba(74, 144, 226, 0.06);
+      border: 1px solid rgba(74, 144, 226, 0.15);
+      border-radius: 8px;
+      letter-spacing: 0.3px;
+      color: #357abd;
+      transition: all 0.3s ease;
+    }
+
+    .dark-mode #probability {
+      background: rgba(0, 212, 255, 0.08);
+      border: 1px solid rgba(0, 212, 255, 0.2);
+      color: #00d4ff;
+      box-shadow: 0 0 15px rgba(0, 212, 255, 0.1);
+    }
+
+    #probability b {
+      color: #e84c3d;
+      font-weight: 700;
+    }
+
+    .dark-mode #probability b {
+      color: #ff4081;
+    }
+
+    .button-container {
+      text-align: center;
+      margin-top: 30px;
+    }
+
+    .screenshot-btn {
+      padding: 12px 28px;
+      font-size: 1em;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: linear-gradient(135deg, #4a90e2, #357abd);
+      color: white;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+    }
+
+    .dark-mode .screenshot-btn {
+      background: linear-gradient(135deg, #00d4ff, #0088cc);
+      box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+    }
+
+    .screenshot-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(74, 144, 226, 0.4);
+    }
+
+    .dark-mode .screenshot-btn:hover:not(:disabled) {
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+    }
+
+    .screenshot-btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .screenshot-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 20px 15px;
+      }
+
+      .theme-toggle {
+        top: 15px;
+        right: 15px;
+      }
+
+      .toggle-btn {
+        width: 50px;
+        height: 30px;
+        font-size: 16px;
+      }
+
+      .header {
+        margin-bottom: 30px;
+        margin-top: 15px;
+      }
+
+      h1 {
+        font-size: 1.8em;
+        margin-bottom: 5px;
+      }
+
+      h3 {
+        font-size: 0.85em;
+      }
+
+      .controls-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        padding: 20px;
+        margin-bottom: 30px;
+      }
+
+      label {
+        font-size: 0.9em;
+        margin-bottom: 8px;
+      }
+
+      .value-display {
+        font-size: 0.85em;
+        padding: 2px 8px;
+      }
+
+      #bell-curve {
+        height: 380px;
+        margin: 20px auto;
+      }
+
+      #probability {
+        font-size: 0.9em;
+        padding: 15px;
+        margin-top: 20px;
+      }
+
+      .button-container {
+        margin-top: 20px;
+      }
+
+      .screenshot-btn {
+        padding: 10px 24px;
+        font-size: 0.95em;
+        width: 100%;
+        max-width: 300px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 15px 10px;
+      }
+
+      .header {
+        margin-bottom: 25px;
+      }
+
+      h1 {
+        font-size: 1.5em;
+        letter-spacing: 0.5px;
+      }
+
+      h3 {
+        font-size: 0.75em;
+      }
+
+      .controls-grid {
+        gap: 15px;
+        padding: 15px;
+      }
+
+      label {
+        font-size: 0.85em;
+      }
+
+      #bell-curve {
+        height: 320px;
+        margin: 15px auto;
+        border-radius: 8px;
+      }
+
+      #probability {
+        font-size: 0.85em;
+        padding: 12px;
+      }
+
+      .screenshot-btn {
+        padding: 10px 20px;
+        font-size: 0.9em;
+      }
+
+      .toggle-btn {
+        width: 45px;
+        height: 28px;
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body class="dark-mode">
+
+<div class="theme-toggle">
+  <button class="toggle-btn" id="theme-btn" title="Toggle dark/light mode">🌙</button>
+</div>
+
+<div class="content">
+  <div class="header">
+    <h1>Proficiency Bell Curve</h1>
+    <h3>Statistical Distribution Analyzer</h3>
+  </div>
+
+  <div class="controls-grid">
+    <div class="slider-container">
+      <label>Proficiency<span class="value-display" id="prof-val">0.80</span></label>
+      <input type="range" min="0" max="1" step="0.01" value="0.8" id="proficiency-slider">
+    </div>
+
+    <div class="slider-container">
+      <label>Accuracy<span class="value-display" id="acc-val">0.80</span></label>
+      <input type="range" min="0" max="1" step="0.01" value="0.8" id="accuracy-slider">
+    </div>
+  </div>
+
+  <div id="bell-curve"></div>
+  <div id="probability">Select a range on the curve to calculate probability</div>
+  
+  <div class="button-container">
+    <button id="screenshot-btn" class="screenshot-btn">📸 Capture Screenshot</button>
+  </div>
+</div>
+
+<script>
+// Global variables
+let profSlider, accSlider, themeBtn, screenshotBtn, body;
+
+function normalPDF(x, mean, std) {
+    return Math.exp(-0.5 * ((x-mean)/std)**2) / (std * Math.sqrt(2*Math.PI));
+}
+
+function generateData(mean, std, numPoints=1000) {
+    let x = [], y = [];
+    let start = 0, end = 100;
+    let step = (end-start)/(numPoints-1);
+    for(let i=0;i<numPoints;i++){
+        let xi = start + i*step;
+        x.push(xi);
+        y.push(normalPDF(xi, mean, std));
+    }
+    return {x:x, y:y};
+}
+
+function plotCurve(prof, acc) {
+    let isDarkMode = body.classList.contains('dark-mode');
+    let mean = prof*100;
+    let std = 1 + (1-acc)*20;
+    let data = generateData(mean, std);
+
+    let histColor = isDarkMode ? 'rgba(0, 212, 255, 0.4)' : 'rgba(74, 144, 226, 0.3)';
+    let lineColor = isDarkMode ? '#00d4ff' : '#4a90e2';
+    let gridColor = isDarkMode ? 'rgba(0, 212, 255, 0.1)' : 'rgba(74, 144, 226, 0.1)';
+    let textColor = isDarkMode ? '#a0a0a0' : '#666';
+    let titleColor = isDarkMode ? '#00d4ff' : '#357abd';
+
+    let histogram = {
+        x: data.x,
+        y: data.y,
+        type:'bar',
+        name:'Density',
+        marker:{color: histColor},
+        hoverinfo:'x+y',
+        opacity:0.8
+    };
+
+    let curve = {
+        x: data.x,
+        y: data.y,
+        type:'scatter',
+        mode:'lines',
+        line:{color: lineColor, width:3},
+        name:'Distribution Curve',
+        hoverinfo:'x+y'
+    };
+
+    let layout = {
+        title: {
+            text: `Distribution: μ = ${mean.toFixed(1)} | σ = ${std.toFixed(1)}`,
+            font: {color: titleColor, size: 15},
+        },
+        xaxis:{
+            range:[0,100],
+            title:'Score',
+            showgrid:true,
+            gridcolor: gridColor,
+            gridwidth:1,
+            zeroline:false,
+            titlefont:{color: textColor},
+            tickfont:{color: textColor}
+        },
+        yaxis:{
+            title:'Density',
+            showgrid:true,
+            gridcolor: gridColor,
+            gridwidth:1,
+            zeroline:false,
+            titlefont:{color: textColor},
+            tickfont:{color: textColor},
+            autorange:true
+        },
+        plot_bgcolor: isDarkMode ? 'rgba(13, 17, 23, 0.3)' : 'rgba(255, 255, 255, 0.3)',
+        paper_bgcolor:'transparent',
+        dragmode:'select',
+        selectdirection:'h',
+        hovermode:'closest',
+        font:{family:'Segoe UI, monospace', size:12, color: textColor},
+        margin:{l:60, r:40, t:70, b:60}
+    };
+
+    Plotly.newPlot('bell-curve', [histogram, curve], layout, {responsive:true});
+
+    let graphDiv = document.getElementById('bell-curve');
+    graphDiv.on('plotly_selected', function(event){
+        if(!event || !event.points || event.points.length === 0) return;
+
+        let points = event.points.map(p => p.x);
+        let x0 = Math.min(...points);
+        let x1 = Math.max(...points);
+
+        let numPoints = 1000;
+        let step = (x1-x0)/(numPoints-1);
+        let area = 0;
+        let highlightX=[], highlightY=[];
+        for(let i=0;i<numPoints;i++){
+            let xi = x0 + i*step;
+            let yi = normalPDF(xi, mean, std);
+            area += yi*step;
+            highlightX.push(xi);
+            highlightY.push(yi);
+        }
+
+        Plotly.deleteTraces(graphDiv, -1);
+        let highlightColor = isDarkMode ? 'rgba(255, 64, 129, 0.3)' : 'rgba(232, 76, 61, 0.3)';
+        Plotly.addTraces(graphDiv, {
+            x: highlightX,
+            y: highlightY,
+            type:'scatter',
+            mode:'lines',
+            fill:'tozeroy',
+            fillcolor: highlightColor,
+            line:{width:0},
+            name:'Selected Region'
+        });
+
+        document.getElementById('probability').innerHTML = 
+            `Probability [ <b>${x0.toFixed(2)}</b> to <b>${x1.toFixed(2)}</b> ] = <b>${(area*100).toFixed(2)}%</b>`;
+    });
+}
+
+// Screenshot function
+async function takeScreenshot() {
+    screenshotBtn.disabled = true;
+    screenshotBtn.textContent = '⏳ Processing...';
+    
+    try {
+        // Create a container for the screenshot content
+        const container = document.createElement('div');
+        container.style.padding = '40px';
+        container.style.background = body.classList.contains('dark-mode') 
+            ? 'linear-gradient(135deg, #0d1117 0%, #161b22 100%)' 
+            : 'linear-gradient(135deg, #f8f9fb 0%, #eef2f7 100%)';
+        container.style.borderRadius = '12px';
+        container.style.width = '1200px';
+        container.style.color = body.classList.contains('dark-mode') ? '#e0e0e0' : '#1a1a1a';
+        container.style.fontFamily = "'Segoe UI', monospace";
+        
+        // Title
+        const title = document.createElement('h2');
+        title.textContent = 'Proficiency Bell Curve Analysis';
+        title.style.marginBottom = '8px';
+        title.style.color = body.classList.contains('dark-mode') ? '#00d4ff' : '#357abd';
+        title.style.fontSize = '28px';
+        title.style.fontWeight = '600';
+        container.appendChild(title);
+        
+        // Subtitle with stats
+        const subtitle = document.createElement('p');
+        const prof = parseFloat(profSlider.value);
+        const acc = parseFloat(accSlider.value);
+        subtitle.textContent = `Statistical Distribution Report | Proficiency: ${(prof*100).toFixed(1)}% | Accuracy: ${(acc*100).toFixed(1)}%`;
+        subtitle.style.marginBottom = '15px';
+        subtitle.style.color = body.classList.contains('dark-mode') ? '#a0a0a0' : '#666';
+        subtitle.style.fontSize = '14px';
+        subtitle.style.letterSpacing = '0.5px';
+        container.appendChild(subtitle);
+
+        // Description
+        const description = document.createElement('p');
+        description.style.marginBottom = '25px';
+        description.style.color = body.classList.contains('dark-mode') ? '#888' : '#777';
+        description.style.fontSize = '13px';
+        description.style.lineHeight = '1.6';
+        description.style.fontStyle = 'italic';
+        description.innerHTML = `This bell curve represents a normal distribution of scores based on the proficiency level and accuracy parameters. The horizontal axis shows score values (0-100), while the vertical axis represents the probability density. The mean (μ) indicates the expected average score, and standard deviation (σ) measures the spread of scores around the mean.`;
+        container.appendChild(description);
+        
+        // Clone the bell curve chart
+        const chartClone = document.getElementById('bell-curve').cloneNode(true);
+        chartClone.style.width = '100%';
+        chartClone.style.height = '500px';
+        chartClone.style.marginBottom = '20px';
+        container.appendChild(chartClone);
+        
+        // Add stats box
+        const statsBox = document.createElement('div');
+        statsBox.style.padding = '20px';
+        statsBox.style.background = body.classList.contains('dark-mode') 
+            ? 'rgba(0, 212, 255, 0.08)' 
+            : 'rgba(74, 144, 226, 0.06)';
+        statsBox.style.border = body.classList.contains('dark-mode')
+            ? '1px solid rgba(0, 212, 255, 0.2)'
+            : '1px solid rgba(74, 144, 226, 0.15)';
+        statsBox.style.borderRadius = '8px';
+        statsBox.style.fontSize = '13px';
+        statsBox.style.lineHeight = '1.8';
+        
+        const mean = prof * 100;
+        const std = 1 + (1 - acc) * 20;
+        
+        statsBox.innerHTML = `
+            <strong style="color: ${body.classList.contains('dark-mode') ? '#00d4ff' : '#357abd'}; font-size: 14px;">Distribution Parameters:</strong><br>
+            • Mean (μ): ${mean.toFixed(2)}<br>
+            • Standard Deviation (σ): ${std.toFixed(2)}<br>
+            • Proficiency Level: ${(prof*100).toFixed(1)}%<br>
+            • Model Accuracy: ${(acc*100).toFixed(1)}%<br>
+            <br>
+            <em style="color: ${body.classList.contains('dark-mode') ? '#a0a0a0' : '#999'}; font-size: 12px;">
+                Generated on ${new Date().toLocaleString()} • Use drag selection on the curve to calculate probabilities
+            </em>
+        `;
+        container.appendChild(statsBox);
+        
+        // Temporarily add container to body
+        document.body.appendChild(container);
+        
+        // Capture with html2canvas
+        const canvas = await html2canvas(container, {
+            backgroundColor: null,
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            allowTaint: true
+        });
+        
+        // Remove temporary container
+        document.body.removeChild(container);
+        
+        // Download image
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/png');
+        link.download = `bell-curve-${new Date().toISOString().split('T')[0]}.png`;
+        link.click();
+        
+        screenshotBtn.textContent = '✓ Screenshot Downloaded!';
+        setTimeout(() => {
+            screenshotBtn.textContent = '📸 Capture Screenshot';
+            screenshotBtn.disabled = false;
+        }, 2000);
+    } catch (err) {
+        console.error('Screenshot error:', err);
+        screenshotBtn.textContent = '❌ Error - Check Console';
+        setTimeout(() => {
+            screenshotBtn.textContent = '📸 Capture Screenshot';
+            screenshotBtn.disabled = false;
+        }, 3000);
+    }
+}
+
+// Initialize everything after DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    profSlider = document.getElementById('proficiency-slider');
+    accSlider = document.getElementById('accuracy-slider');
+    themeBtn = document.getElementById('theme-btn');
+    screenshotBtn = document.getElementById('screenshot-btn');
+    body = document.body;
+
+    // Theme toggle event
+    themeBtn.addEventListener('click', () => {
+        body.classList.toggle('dark-mode');
+        body.classList.toggle('light-mode');
+        themeBtn.textContent = body.classList.contains('dark-mode') ? '🌙' : '☀️';
+        plotCurve(parseFloat(profSlider.value), parseFloat(accSlider.value));
+    });
+
+    // Slider events
+    profSlider.addEventListener('input', function(){
+        document.getElementById('prof-val').innerText = parseFloat(this.value).toFixed(2);
+        plotCurve(parseFloat(this.value), parseFloat(accSlider.value));
+    });
+
+    accSlider.addEventListener('input', function(){
+        document.getElementById('acc-val').innerText = parseFloat(this.value).toFixed(2);
+        plotCurve(parseFloat(profSlider.value), parseFloat(this.value));
+    });
+
+    // Screenshot button event
+    screenshotBtn.addEventListener('click', takeScreenshot);
+
+    // Initial plot
+    plotCurve(parseFloat(profSlider.value), parseFloat(accSlider.value));
+});
+</script>
+
+</body>
+</html>
